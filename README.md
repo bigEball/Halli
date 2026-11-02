@@ -44,3 +44,11 @@ The About section incorporates Halli’s supplied introduction (Washington homet
 Phone: 425-395-5021. The phone-number field in Social & salon details updates all call links, including the mobile bottom bar. Call links use the +1 country code for US numbers.
 
 Images include compressed full-size JPEGs plus 720px responsive alternatives. Original Instagram downloads are preserved in `original-photos/`. The initial hero photo uses responsive sources; below-the-fold photos load lazily.
+
+## Deployment (Cloudflare)
+
+Live at https://hairbyhallij.com and https://www.hairbyhallij.com as a Cloudflare Worker (`worker.mjs`) serving `dist/` with the editor API. Content, sessions, and uploaded photos live in the `HALLI_KV` Workers KV namespace (see `wrangler.jsonc`). `server.mjs` is still the local-only version.
+
+- Deploy: `npx wrangler login` once, then `npx wrangler deploy`.
+- Admin password: stored as the Worker secret `HALLI_ADMIN_PASSWORD`. Change it with `npx wrangler secret put HALLI_ADMIN_PASSWORD`.
+- Edit the live site at https://hairbyhallij.com/admin.

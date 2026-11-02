@@ -2,6 +2,7 @@ import http from 'node:http';
 import {readFile,writeFile,mkdir,rename,copyFile} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {validate,defaults} from './validate.mjs';
 import {randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';
 const root=fileURLToPath(new URL('./dist/',import.meta.url));
 const dataDir=process.env.HALLI_DATA_DIR||fileURLToPath(new URL('./data/',import.meta.url));
@@ -12,20 +13,9 @@ const passwordSalt=randomBytes(16);const passwordHash=scryptSync(process.env.HAL
 const sessions=new Map();const attempts=new Map();let saving=false;
 const port=Number(process.env.PORT||4173);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp','.gif':'image/gif','.svg':'image/svg+xml','.json':'application/json'};
-const defaults={version:1,fields:{},collections:{},theme:{},hidden:{},order:[]};
 function reply(res,status,data,headers={}){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store',...headers});res.end(JSON.stringify(data));}
 async function body(req,max=2_000_000){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>max){const e=Error('File is too large. Maximum image size is 10 MB.');e.status=413;throw e;}chunks.push(chunk);}return Buffer.concat(chunks);}
 function session(req){const cookie=req.headers.cookie||'';const id=cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith('halli_session='))?.slice(14);const value=sessions.get(id);if(value&&value.expires>Date.now())return {id,...value};if(id)sessions.delete(id);return null;}
-function validUrl(value,image=false){return typeof value==='string'&&value.length<=10000&&(image?/^(assets\/|\/uploads\/|https?:\/\/)/i:/^(https?:\/\/|#|\/|mailto:|tel:)/i).test(value);}
-function validate(config){if(!config||Array.isArray(config)||typeof config!=='object')throw Error('Invalid website content.');const out={...defaults,fields:{},collections:{},theme:{},hidden:{},order:[]};
-if(config.fields&&typeof config.fields==='object')for(const[key,value]of Object.entries(config.fields)){if(!/^(text-\d+|link-\d+|image-\d+(?:-alt|-fit|-position)?|page-title|page-description|contact-phone)$/.test(key)||typeof value!=='string'||value.length>20000)throw Error('Invalid content field.');if(key.startsWith('link-')&&!validUrl(value))throw Error('Links must use a web address, email, phone, or section link.');if(/^image-\d+$/.test(key)&&!validUrl(value,true))throw Error('Please select an image or enter an image URL.');out.fields[key]=value;}
-const allowed={color:['title','description','price'],extensions:['title','description','price'],cuts:['title','description','price'],gallery:['src','alt','caption','url','fit','position'],steps:['title','description'],faqs:['question','answer']};
-for(const[key,items]of Object.entries(config.collections||{})){if(!allowed[key]||!Array.isArray(items)||items.length>100)throw Error('Invalid list.');out.collections[key]=items.map(item=>{const value={};for(const field of allowed[key]){value[field]=item[field]??'';if(typeof value[field]!=='string'||value[field].length>20000)throw Error('Invalid list item.');}if(key==='gallery'&&(!validUrl(value.src,true)||!validUrl(value.url)))throw Error('Each photo needs a valid image and link.');return value;});}
-const colors=['paper','cream','ink','muted','line'];for(const key of colors){if(config.theme?.[key]){if(!/^#[0-9a-f]{6}$/i.test(config.theme[key]))throw Error('Invalid color.');out.theme[key]=config.theme[key];}}
-for(const key of ['headingFont','bodyFont'])if(config.theme?.[key]){const value=config.theme[key];if(!['Georgia, serif','Arial, sans-serif','Verdana, sans-serif',"'Cormorant Garamond', Georgia, serif","'DM Sans', Arial, sans-serif"].includes(value))throw Error('Invalid font.');out.theme[key]=value;}
-if(config.theme?.textScale!==undefined){const v=Number(config.theme.textScale);if(!Number.isFinite(v)||v<.9||v>1.4)throw Error('Invalid text size.');out.theme.textScale=v;}
-const sections=['hero','about','services','portfolio','newClient','visit','faq'];for(const key of sections)if(config.hidden?.[key])out.hidden[key]=true;
-if(config.order){if(!Array.isArray(config.order)||config.order.some(k=>!sections.includes(k)))throw Error('Invalid section order.');out.order=[...new Set(config.order)];}return out;}
 http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');const path=decodeURIComponent(url.pathname);res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');
 if(req.method!=='GET'&&req.method!=='HEAD'&&req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`){reply(res,403,{error:'Please make changes from the local website.'});return;}
 if(path==='/api/content'&&req.method==='GET'){let content=defaults;try{content=JSON.parse(await readFile(contentPath,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}reply(res,200,content);return;}

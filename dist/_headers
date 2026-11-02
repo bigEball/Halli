@@ -1,0 +1,6 @@
+/admin*
+  X-Frame-Options: DENY
+  Cache-Control: no-cache
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin
