@@ -5,7 +5,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/uploads/*"]
+    "run_worker_first": true
   },
   "kv_namespaces": [{"binding": "HALLI_KV", "id": "24d27c99a4ee43cab68096d4eaa48f4b"}],
   "routes": [

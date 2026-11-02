@@ -152,6 +152,10 @@ export default {
   async fetch(request, env) {
     try {
       const url = new URL(request.url);
+      if (url.hostname === 'www.hairbyhallij.com') {
+        url.hostname = 'hairbyhallij.com';
+        return Response.redirect(url.toString(), 301);
+      }
       if (url.pathname.startsWith('/api/')) return await handleApi(request, env, url);
       if (url.pathname.startsWith('/uploads/') && ['GET', 'HEAD'].includes(request.method)) {
         return await handleUpload(request, env, url);
