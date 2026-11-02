@@ -1,0 +1,12 @@
+{
+  "name": "halli-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hair by Halli J \u2014 local stylist website",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check dist/app.js && node --check dist/content.js && node --check dist/admin.js",
+    "test": "node --test server.test.mjs"
+  }
+}
